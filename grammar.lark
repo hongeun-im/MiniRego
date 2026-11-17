@@ -1,0 +1,114 @@
+// MiniRego grammar (Lark, LALR). Converted from the EBNF in the project spec.
+// Left out on purpose: `expr` precedence (placeholder below), object/set/
+// comprehension, every_decl, with_mod.
+
+// ---------- Module / rules ----------
+start: module
+
+module: _NL* PACKAGE ref (_NL+ import_stmt)* (_NL+ rule)* _NL*
+
+import_stmt: IMPORT ref [AS var]
+
+rule: [DEFAULT] rule_head [rule_body] (ELSE [ASSIGN term] rule_body)*
+
+rule_head: var [LPAREN [term (COMMA term)*] RPAREN] [CONTAINS term | LBRACK term RBRACK] [ASSIGN term]
+
+rule_body: IF (literal | query_block)
+         | query_block
+
+query_block: LBRACE _sep* query RBRACE
+
+query: literal (_sep+ literal)* _sep*
+
+_sep: SEMI | _NL
+
+// ---------- Literals ----------
+literal: some_decl
+       | [NOT] expr
+
+some_decl: SOME var (COMMA var)* [IN expr]
+
+// ---------- Expressions (PLACEHOLDER: flat, no precedence) ----------
+expr: operand (infix_op operand)*
+
+operand: term
+       | LPAREN expr RPAREN
+
+infix_op: ASSIGN | UNIFY | EQ | NEQ | LT | LTE | GT | GTE
+        | PLUS | MINUS | STAR | SLASH | PERCENT | PIPE | AMP
+
+// ---------- Terms ----------
+term: ref
+    | scalar
+    | array
+
+ref: ref_head ref_arg*
+
+ref_head: var
+        | call
+
+ref_arg: DOT var
+       | LBRACK term RBRACK
+
+call: var LPAREN [expr (COMMA expr)*] RPAREN
+
+array: LBRACK [term (COMMA term)*] RBRACK
+
+scalar: NUMBER | STRING | TRUE | FALSE | NULL
+
+var: IDENT
+
+
+// ---------- Terminals ----------
+// Keywords
+PACKAGE:  "package"
+IMPORT:   "import"
+AS:       "as"
+DEFAULT:  "default"
+IF:       "if"
+ELSE:     "else"
+CONTAINS: "contains"
+SOME:     "some"
+IN:       "in"
+NOT:      "not"
+TRUE:     "true"
+FALSE:    "false"
+NULL:     "null"
+
+// Operators
+ASSIGN:  ":="
+UNIFY:   "="
+EQ:      "=="
+NEQ:     "!="
+LTE:     "<="
+GTE:     ">="
+LT:      "<"
+GT:      ">"
+PLUS:    "+"
+MINUS:   "-"
+STAR:    "*"
+SLASH:   "/"
+PERCENT: "%"
+PIPE:    "|"
+AMP:     "&"
+
+// Punctuation
+LBRACE: "{"
+RBRACE: "}"
+LBRACK: "["
+RBRACK: "]"
+LPAREN: "("
+RPAREN: ")"
+DOT:    "."
+COMMA:  ","
+SEMI:   ";"
+
+// Patterns
+IDENT:  /[A-Za-z_][A-Za-z0-9_]*/
+NUMBER: /\d+(\.\d+)?([eE][+-]?\d+)?/
+STRING: /"(\\.|[^"\\\n])*"/
+COMMENT: /#[^\n]*/
+_NL: /\r?\n/
+
+%ignore COMMENT
+%ignore /[ \t\r]+/

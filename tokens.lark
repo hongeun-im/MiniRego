@@ -1,0 +1,31 @@
+// Keywords: exact strings
+PACKAGE: "package"
+DEFAULT: "default"
+IF:      "if"
+SOME:    "some"
+IN:      "in"
+NOT:     "not"
+CONTAINS: "contains"
+TRUE:    "true"
+FALSE:   "false"
+
+// Operators and punctuation
+ASSIGN: ":="
+EQ:     "=="
+NEQ:    "!="
+LBRACE: "{"
+RBRACE: "}"
+LBRACK: "["
+RBRACK: "]"
+DOT:    "."
+_NL: /(\r?\n)+/
+
+// Patterns
+IDENT:  /[A-Za-z_][A-Za-z0-9_]*/
+NUMBER: /-?\d+(\.\d+)?([eE][+-]?\d+)?/
+STRING: /"(\\.|[^"\\])*"/
+
+COMMENT: /#[^\n]*/
+%ignore COMMENT
+%ignore /[ \t\r\n]+/
+//need to change because of adding _NL

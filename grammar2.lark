@@ -1,0 +1,141 @@
+start: module
+
+// ---------- module / rules ----------
+module: _NL* _PACKAGE ref (_NL+ import_stmt)* (_NL+ rule)* _NL*
+
+import_stmt: _IMPORT ref [_AS var]
+
+rule: [default_kw] rule_head [rule_body] else_clause*
+default_kw: _DEFAULT
+
+// name, then optional (args), optional contains/[key], optional := value
+rule_head: var [head_args] [head_key] [head_value]
+head_args: _LPAREN [term (_COMMA term)*] _RPAREN
+head_key: _CONTAINS term -> head_contains
+        | _LBRACK term _RBRACK -> head_index
+head_value: _ASSIGN term
+
+else_clause: _ELSE [head_value] rule_body
+
+rule_body: _IF literal -> body_single
+         | _IF query_block -> body_block
+         | query_block -> body_block
+
+query_block: _LBRACE _sep* query _RBRACE
+query: literal (_sep+ literal)* _sep*
+_sep: _SEMI | _NL
+
+// ---------- body lines ----------
+literal: some_decl -> lit_some
+       | expr -> lit_pos
+       | _NOT expr -> lit_neg
+
+some_decl: _SOME var (_COMMA var)* [some_in]
+some_in: _IN expr
+
+// ---------- expressions: loosest -> tightest ----------
+//   := =   <   |   <   &   <   == != < <= > >=   <   + -   <   * / %   <   unary -
+?expr: or_exp
+     | or_exp _ASSIGN or_exp -> assign
+     | or_exp _UNIFY or_exp -> unify
+
+?or_exp: or_exp _PIPE and_exp -> bit_or
+       | and_exp
+
+?and_exp: and_exp _AMP cmp_exp -> bit_and
+        | cmp_exp
+
+?cmp_exp: cmp_exp _EQ add_exp -> eq
+        | cmp_exp _NEQ add_exp -> neq
+        | cmp_exp _LT add_exp -> lt
+        | cmp_exp _LTE add_exp -> lte
+        | cmp_exp _GT add_exp -> gt
+        | cmp_exp _GTE add_exp -> gte
+        | add_exp
+
+?add_exp: add_exp _PLUS mul_exp -> add
+        | add_exp _MINUS mul_exp -> sub
+        | mul_exp
+
+?mul_exp: mul_exp _STAR unary -> mul
+        | mul_exp _SLASH unary -> div
+        | mul_exp _PERCENT unary -> mod
+        | unary
+
+?unary: _MINUS unary -> neg
+      | operand
+
+?operand: term
+        | _LPAREN expr _RPAREN
+
+// ---------- terms ----------
+?term: ref
+     | scalar
+     | array
+
+ref: ref_head ref_arg*
+?ref_head: var
+         | call
+ref_arg: _DOT var -> arg_dot
+       | _LBRACK term _RBRACK -> arg_index
+
+call: var _LPAREN [expr (_COMMA expr)*] _RPAREN
+array: _LBRACK [term (_COMMA term)*] _RBRACK
+
+?scalar: NUMBER -> number
+       | STRING -> string
+       | _TRUE -> true_
+       | _FALSE -> false_
+       | _NULL -> null
+
+var: IDENT
+
+// ---------- terminals ----------
+_PACKAGE:  "package"
+_IMPORT:   "import"
+_AS:       "as"
+_DEFAULT:  "default"
+_IF:       "if"
+_ELSE:     "else"
+_CONTAINS: "contains"
+_SOME:     "some"
+_IN:       "in"
+_NOT:      "not"
+_TRUE:     "true"
+_FALSE:    "false"
+_NULL:     "null"
+
+_ASSIGN:  ":="
+_UNIFY:   "="
+_EQ:      "=="
+_NEQ:     "!="
+_LTE:     "<="
+_GTE:     ">="
+_LT:      "<"
+_GT:      ">"
+_PLUS:    "+"
+_MINUS:   "-"
+_STAR:    "*"
+_SLASH:   "/"
+_PERCENT: "%"
+_PIPE:    "|"
+_AMP:     "&"
+
+_LBRACE: "{"
+_RBRACE: "}"
+_LBRACK: "["
+_RBRACK: "]"
+_LPAREN: "("
+_RPAREN: ")"
+_DOT:    "."
+_COMMA:  ","
+_SEMI:   ";"
+
+IDENT:   /[A-Za-z_][A-Za-z0-9_]*/
+NUMBER:  /\d+(\.\d+)?([eE][+-]?\d+)?/
+STRING:  /"(\\.|[^"\\\n])*"/
+COMMENT: /#[^\n]*/
+_NL:     /\r?\n/
+
+%ignore COMMENT
+%ignore /[ \t\r]+/
