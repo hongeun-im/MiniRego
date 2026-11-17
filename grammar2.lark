@@ -1,5 +1,6 @@
 start: module
 
+
 // ---------- module / rules ----------
 module: _NL* _PACKAGE ref (_NL+ import_stmt)* (_NL+ rule)* _NL*
 
