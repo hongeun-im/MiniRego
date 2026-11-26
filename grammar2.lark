@@ -13,7 +13,7 @@ rule_head: var [head_args] [head_key] [head_value]
 head_args: _LPAREN [term (_COMMA term)*] _RPAREN
 head_key: _CONTAINS term -> head_contains
         | _LBRACK term _RBRACK -> head_index
-head_value: _ASSIGN term
+head_value: _ASSIGN or_exp
 
 else_clause: _ELSE [head_value] rule_body
 
@@ -35,6 +35,7 @@ some_in: _IN expr
 
 // ---------- expressions: loosest -> tightest ----------
 //   := =   <   |   <   &   <   == != < <= > >=   <   + -   <   * / %   <   unary -
+// Bindings may be parenthesized as whole body literals. Values use or_exp.
 ?expr: or_exp
      | or_exp _ASSIGN or_exp -> assign
      | or_exp _UNIFY or_exp -> unify
@@ -66,7 +67,7 @@ some_in: _IN expr
       | operand
 
 ?operand: term
-        | _LPAREN expr _RPAREN
+        | _LPAREN or_exp _RPAREN
 
 // ---------- terms ----------
 ?term: ref
@@ -79,8 +80,8 @@ ref: ref_head ref_arg*
 ref_arg: _DOT var -> arg_dot
        | _LBRACK term _RBRACK -> arg_index
 
-call: var _LPAREN [expr (_COMMA expr)*] _RPAREN
-array: _LBRACK [term (_COMMA term)*] _RBRACK
+call: var _LPAREN [or_exp (_COMMA or_exp)*] _RPAREN
+array: _LBRACK [or_exp (_COMMA or_exp)*] _RBRACK
 
 ?scalar: NUMBER -> number
        | STRING -> string
